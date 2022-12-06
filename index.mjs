@@ -31,6 +31,7 @@ async function main() {
 
   // delay 3 seconds to allow the page to load
   await new Promise((r) => setTimeout(r, 3000));
+
   // if browser is redirected to the "https://chat.openai.com/chat" page, then the user is already logged in
   if (page.url() === "https://chat.openai.com/chat") {
     console.log("User is already logged in.");
@@ -67,6 +68,13 @@ async function main() {
     );
   }
 
+  const [nextButton1] = await page.$x("//button[contains(text(), 'Next')]");
+  await nextButton1.click();
+  const [nextButton2] = await page.$x("//button[contains(text(), 'Next')]");
+  await nextButton2.click();
+  const [doneButton] = await page.$x("//button[contains(text(), 'Done')]");
+  await doneButton.click();
+
   // Send a message to the chat
   async function sendMessage(message) {
     await page.type(
@@ -77,29 +85,41 @@ async function main() {
   }
 
   // When the browser receives a 200 response from the server called "moderations", display the payload preview in the console
-  // page.on("response", (response) => {
-  //   if (response.url().includes("moderations")) {
-  //     let json = JSON.parse(response.request().postData());
-  //     const messages = json.input.split("\n\n\n");
-  //     // if message.lenght is odd, then the last message is from the user
-  //     // if message.lenght is even, then the last message is from the bot
-  //     if (messages.length % 2 === 0) {
-  //       console.log("ChatGPT: ", messages[messages.length - 1]);
-  //     } else {
-  //       console.log("You: ", messages[messages.length - 1]);
-  //     }
-  //   }
-  // });
+  page.on("response", (response) => {
+    if (response.url().includes("moderations")) {
+      let json = JSON.parse(response.request().postData());
+      const messages = json.input.split("\n\n\n");
+      // if message.lenght is odd, then the last message is from the user
+      // if message.lenght is even, then the last message is from the bot
+      if (messages.length % 2 === 0) {
+        console.log("ChatGPT: ", messages[messages.length - 1]);
+      } else {
+        console.log("You: ", messages[messages.length - 1]);
+      }
+    }
+  });
 
   //TODO: 'Store a conversation history to get proper last message'
 
-  //   await page.waitForSelector(
-  //     "#__next > div > div.flex.flex-1.flex-col.md\\:pl-52.h-full > main > div.sc-15plnpr-3.jqdtxi > form > div > div.sc-4snkpf-0.iLrIMi > textarea"
-  //   );
-  //   await sendMessage("Hello, world!");
+  // Find textarea element then send Hello World
+  const [textarea] = await page.$x("//textarea");
+  await textarea.type("Hello World");
+  await page.keyboard.press("Enter");
 
-  //   browser.on("close", () => {
-  //     process.exit(0);
-  //   });
+  // if a new div element with a class starting with "request-" is added to the DOM, then send the message to the chat
+  page.on("domcontentloaded", async () => {
+    const [newMessage] = await page.$x(
+      "//div[contains(@class, 'request-') and not(contains(@class, 'request-0'))]"
+    );
+    if (newMessage) {
+      const message = await newMessage.evaluate((el) => el.innerText);
+      // await sendMessage(message);
+      console.log("New message: ", message);
+    }
+  });
+
+  browser.on("close", () => {
+    process.exit(0);
+  });
 }
 main();
