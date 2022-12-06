@@ -10,42 +10,62 @@ async function main() {
     headless: false,
     defaultViewport: null,
   });
+
   const page = await browser.newPage();
 
-  await page.goto("https://chat.openai.com/auth/login", {
+  // If the cookies.json file exists, then load the cookies from it
+  if (fs.existsSync("user_data/cookies.json")) {
+    const cookiesString = fs.readFileSync("user_data/cookies.json");
+    const cookies = JSON.parse(cookiesString);
+    if (cookies.length !== 0) {
+      for (const cookie of cookies) {
+        await page.setCookie(cookie);
+      }
+      console.log("Cookies loaded from file.");
+    }
+  }
+
+  await page.goto("https://chat.openai.com/", {
     waitUntil: "domcontentloaded",
   });
 
-  // Wait for the button with path 'document.querySelector("#__next > div > div > div.flex.flex-row.gap-3 > button:nth-child(1)")' to be visible and click on it
-  const [loginButton] = await page.$x("//button[contains(text(), 'Log in')]");
-  await loginButton.click();
+  // delay 3 seconds to allow the page to load
+  await new Promise((r) => setTimeout(r, 3000));
+  // if browser is redirected to the "https://chat.openai.com/chat" page, then the user is already logged in
+  if (page.url() === "https://chat.openai.com/chat") {
+    console.log("User is already logged in.");
+  } else {
+    // Wait for the button with the text "Log in" to be visible and click it
+    const [loginButton] = await page.$x("//button[contains(text(), 'Log in')]");
+    await loginButton.click();
 
-  // Wait for path "document.querySelector("#username")" to be visible and type the value of the environment variable OPENAI_USERNAME into it
-  await page.waitForSelector("#username");
-  await page.type("#username", process.env.OPENAI_USERNAME);
-  await page.keyboard.press("Enter");
+    // Wait for the button with the text "Log in with OpenAI" to be visible and click it
+    await page.waitForSelector("#username");
+    await page.type("#username", process.env.OPENAI_USERNAME);
+    await page.keyboard.press("Enter");
 
-  // Wait for path "document.querySelector("#password")" to be visible and type the value of the environment variable OPENAI_PASSWORD into it
-  await page.waitForSelector("#password");
-  await page.type("#password", process.env.OPENAI_PASSWORD);
-  await page.keyboard.press("Enter");
+    // Wait for path "document.querySelector("#password")" to be visible and type the value of the environment variable OPENAI_PASSWORD into it
+    await page.waitForSelector("#password");
+    await page.type("#password", process.env.OPENAI_PASSWORD);
+    await page.keyboard.press("Enter");
 
-  // wait for page change
-  await page.waitForNavigation();
-  // store cookies in a file for later use
-  const cookies = await page.cookies();
-  fs.writeFile(
-    "user_data/cookies.json",
-    JSON.stringify(
-      cookies.filter(
-        (cookie) => cookie.name === "__Secure-next-auth.session-token"
-      )
-    ),
-    (err) => {
-      if (err) throw err;
-      console.log("Cookies saved to file.");
-    }
-  );
+    // wait for page change
+    await page.waitForNavigation();
+    // store cookies in a file for later use
+    const cookies = await page.cookies();
+    fs.writeFile(
+      "user_data/cookies.json",
+      JSON.stringify(
+        cookies.filter(
+          (cookie) => cookie.name === "__Secure-next-auth.session-token"
+        )
+      ),
+      (err) => {
+        if (err) throw err;
+        console.log("Cookies saved to file.");
+      }
+    );
+  }
 
   // Send a message to the chat
   async function sendMessage(message) {
