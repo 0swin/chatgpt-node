@@ -74,12 +74,12 @@ async function main() {
     );
   }
 
-  const [nextButton1] = await page.$x("//button[contains(text(), 'Next')]");
-  await nextButton1.click();
-  const [nextButton2] = await page.$x("//button[contains(text(), 'Next')]");
-  await nextButton2.click();
-  const [doneButton] = await page.$x("//button[contains(text(), 'Done')]");
-  await doneButton.click();
+  // const [nextButton1] = await page.$x("//button[contains(text(), 'Next')]");
+  // await nextButton1.click();
+  // const [nextButton2] = await page.$x("//button[contains(text(), 'Next')]");
+  // await nextButton2.click();
+  // const [doneButton] = await page.$x("//button[contains(text(), 'Done')]");
+  // await doneButton.click();
 
   // Send a message to the chat
   async function sendMessage(message) {
