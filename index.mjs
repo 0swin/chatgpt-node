@@ -54,6 +54,12 @@ async function main() {
     await page.waitForNavigation();
     // store cookies in a file for later use
     const cookies = await page.cookies();
+
+    // if folder user_data doesn't exist, then create it
+    if (!fs.existsSync("user_data")) {
+      fs.mkdirSync("user_data");
+    }
+
     fs.writeFile(
       "user_data/cookies.json",
       JSON.stringify(
